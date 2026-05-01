@@ -9,6 +9,26 @@ def judul():
 st.sidebar.title("Navigasi")
 menu = st.sidebar.radio("Pilih halaman", ["Home", "Halaman Data"])
 
+st.sidebar.markdown(
+    """
+    <style>
+    .footer {
+        position: fixed;
+        bottom: 10px;
+        left: 10px;
+        width: 200px;
+        font-size: 12px;
+        color: gray;
+    }
+    </style>
+
+    <div class="footer">
+        © Nadine Assyra - NPM: 12345678
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 if menu == "Home":
     judul()
     # Load & filter data
