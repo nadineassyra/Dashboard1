@@ -8,6 +8,7 @@ def load_data():
     file_path = Path(__file__).parent / "dataset" / "covid_19_indonesia_time_series_all.csv"
     df = pd.read_csv(file_path)
     df['Date'] = pd.to_datetime(df['Date'])
+    df = df[df['Location'] != 'Indonesia']
     return df
 
 def filter_data(df, year=None, locations=None):
@@ -44,18 +45,22 @@ def show_data(df):
     st.subheader("Data COVID-19 Indonesia 🔴⚪")
     st.dataframe(df_selected.head(10)) # Menampilkan 10 data pertama
 
-# Total kasus
+# Fungsi untuk total kasus
 def total_case(df):
-    df_last = df.sort_values('Date').groupby('Location').tail(1)
-    return df_last['Total Cases'].sum()
+    total_kasus = df.sort_values('Date').groupby('Location', as_index=False).last()
+    return total_kasus['Total Cases'].sum()
 
+
+# Fungsi untuk total kematian
 def total_death(df):
-    df_last = df.sort_values('Date').groupby('Location').tail(1)
-    return df_last['Total Deaths'].sum()
+    total_kematian = df.sort_values('Date').groupby('Location', as_index=False).last()
+    return total_kematian['Total Deaths'].sum()
 
+
+# Fungsi untuk total sembuh
 def total_recovery(df):
-    df_last = df.sort_values('Date').groupby('Location').tail(1)
-    return df_last['Total Recovered'].sum()
+    total_sembuh = df.sort_values('Date').groupby('Location', as_index=False).last()
+    return total_sembuh['Total Recovered'].sum()
 
 # Kolom 1
 def kolom(df):
@@ -89,63 +94,71 @@ def pie_chart1(df):
     
     st.plotly_chart(fig, use_container_width=True)
     
-
+# Barchart1
 def bar_chart1(df):
-    df_death = (
-        df.groupby('Location')['New Deaths']
-        .sum()
-        .reset_index()
-        .sort_values('New Deaths', ascending=False)
-        .head(5)
-    )
+    df_last = df.sort_values('Date').groupby('Location', as_index=False).last()
+    top5 = df_last.nlargest(5, 'Total Deaths')
 
     fig = px.bar(
-        df_death,
+        top5,
         x='Location',
-        y='New Deaths',
-        color='New Deaths',
+        y='Total Deaths',
+        color='Total Deaths',
         color_continuous_scale='Reds',
         title='⚕️ 5 Provinsi dengan Kematian Tertinggi',
-        labels={
-            'Location': 'Provinsi',
-            'New Deaths': 'Total Kematian'
-        }
+        labels={'Total Deaths': 'Total Kematian', 'Location': 'Provinsi'}
+    )
+
+    fig.update_layout(
+        xaxis_title='Provinsi',
+        yaxis_title='Total Kematian',
+        title_x=0.5
     )
 
     st.plotly_chart(fig, use_container_width=True)
 
 
+#Barchart2
 def bar_chart2(df):
-    df_recovered = (
-        df.groupby('Location')['New Recovered']
-        .sum()
-        .reset_index()
-        .sort_values('New Recovered', ascending=False)
-        .head(5)
-    )
+    df_last = df.sort_values('Date').groupby('Location', as_index=False).last()
+    top5 = df_last.nlargest(5, 'Total Recovered')
 
     fig = px.bar(
-        df_recovered,
+        top5,
         x='Location',
-        y='New Recovered',
-        color='New Recovered',
+        y='Total Recovered',
+        color='Total Recovered',
         color_continuous_scale='Greens',
         title='⚕️ 5 Provinsi dengan Kesembuhan Tertinggi',
-        labels={
-            'Location': 'Provinsi',
-            'New Recovered': 'Total Kesembuhan'
-        }
+        labels={'Total Recovered': 'Total Kesembuhan', 'Location': 'Provinsi'}
+    )
+
+    fig.update_layout(
+        xaxis_title='Provinsi',
+        yaxis_title='Total Kesembuhan',
+        title_x=0.5
     )
 
     st.plotly_chart(fig, use_container_width=True)
-    
-    
-def map_chart(df):
-    df_map = (
-        df.groupby(['Location', 'Latitude', 'Longitude'])['New Cases']
-        .sum()
-        .reset_index()
-    )
+
+
+#Mapchart
+def map_chart(df, year=None):
+    df['Date'] = pd.to_datetime(df['Date'])
+
+    if year:
+        df = df[df['Date'].dt.year == year]
+
+    df_agg = df.groupby(
+        ['Location', 'Latitude', 'Longitude'],
+        as_index=False
+    )['New Cases'].sum()
+
+    df_map = df_agg.dropna(subset=['Latitude', 'Longitude', 'New Cases'])
+
+    if df_map.empty:
+        st.info("⚠️ Tidak ada data untuk ditampilkan di peta.")
+        return
 
     fig = px.scatter_mapbox(
         df_map,
@@ -153,15 +166,19 @@ def map_chart(df):
         lon='Longitude',
         size='New Cases',
         color='New Cases',
-        color_continuous_scale='OrRd',
         hover_name='Location',
-        hover_data={'New Cases': True},
-        title='Sebaran Kasus Baru Covid-19 di Indonesia',
-        zoom=3.5,
-        height=600
+        zoom=3,
+        center={"lat": -2.5, "lon": 118},
+        size_max=20,
+        opacity=0.7,
+        color_continuous_scale="OrRd",
+        title=f"Sebaran Kasus Baru Covid-19 di Indonesia ({year if year else 'Semua Tahun'})"
     )
 
-    fig.update_layout(mapbox_style='open-street-map')
-    fig.update_layout(margin={"r":0, "t":50, "l":0, "b":0})
+    fig.update_layout(
+        mapbox_style="carto-positron",
+        height=600,
+        margin={"r": 0, "t": 50, "l": 0, "b": 0}
+    )
 
     st.plotly_chart(fig, use_container_width=True)
