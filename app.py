@@ -11,13 +11,19 @@ menu = st.sidebar.radio("Pilih halaman", ["Home", "Halaman Data"])
 
 if menu == "Home":
     judul()
-    # Pilih tahun
-    year = select_year()
     # Load & filter data
     df = load_data()
-    df_filtered = filter_data(df, year)
+    # Pilih tahun
+    year = select_year()
+    locations = select_location(df)
+    df_filtered = filter_data(df, year, locations)
     kolom(df_filtered)
     pie_chart1(df_filtered)
+    
+    # Bar chart
+    bar_chart1(df_filtered)
+    bar_chart2(df_filtered)
+    map_chart(df_filtered)
     
     # Copyright
     st.write("© Nadine Assyra - NPM: 12345678")

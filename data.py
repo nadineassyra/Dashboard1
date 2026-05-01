@@ -7,9 +7,13 @@ def load_data():
     df = pd.read_csv("dataset\covid_19_indonesia_time_series_all.csv")
     return df
 
-def filter_data(df, year=None):
+def filter_data(df, year=None, locations=None):
     if year:
         df = df[df['Date'].astype(str).str.contains(str(year))]
+
+    if locations:
+        df = df[df['Location'].isin(locations)]
+
     return df
 
 def select_year():
@@ -19,6 +23,13 @@ def select_year():
         format_func=lambda x: "Semua Tahun" if x is None else str(x)
     )
 
+def select_location(df):
+    return st.sidebar.multiselect(
+        "Pilih Provinsi 📍",
+        options=sorted(df['Location'].dropna().unique()),
+        default=[]
+    )
+    
 # Fungsi untuk menampilkan data dalam bentuk tabel
 def show_data(df):
     selected_columns = ['Location'] + list(df.loc[:, 'New Cases':'Total Recovered'].columns)
@@ -76,4 +87,79 @@ def pie_chart1(df):
     
     st.plotly_chart(fig, use_container_width=True)
     
+
+def bar_chart1(df):
+    df_death = (
+        df.groupby('Location')['New Deaths']
+        .sum()
+        .reset_index()
+        .sort_values('New Deaths', ascending=False)
+        .head(5)
+    )
+
+    fig = px.bar(
+        df_death,
+        x='Location',
+        y='New Deaths',
+        color='New Deaths',
+        color_continuous_scale='Reds',
+        title='⚕️ 5 Provinsi dengan Kematian Tertinggi',
+        labels={
+            'Location': 'Provinsi',
+            'New Deaths': 'Total Kematian'
+        }
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def bar_chart2(df):
+    df_recovered = (
+        df.groupby('Location')['New Recovered']
+        .sum()
+        .reset_index()
+        .sort_values('New Recovered', ascending=False)
+        .head(5)
+    )
+
+    fig = px.bar(
+        df_recovered,
+        x='Location',
+        y='New Recovered',
+        color='New Recovered',
+        color_continuous_scale='Greens',
+        title='⚕️ 5 Provinsi dengan Kesembuhan Tertinggi',
+        labels={
+            'Location': 'Provinsi',
+            'New Recovered': 'Total Kesembuhan'
+        }
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
     
+    
+def map_chart(df):
+    df_map = (
+        df.groupby(['Location', 'Latitude', 'Longitude'])['New Cases']
+        .sum()
+        .reset_index()
+    )
+
+    fig = px.scatter_mapbox(
+        df_map,
+        lat='Latitude',
+        lon='Longitude',
+        size='New Cases',
+        color='New Cases',
+        color_continuous_scale='OrRd',
+        hover_name='Location',
+        hover_data={'New Cases': True},
+        title='Sebaran Kasus Baru Covid-19 di Indonesia',
+        zoom=3.5,
+        height=600
+    )
+
+    fig.update_layout(mapbox_style='open-street-map')
+    fig.update_layout(margin={"r":0, "t":50, "l":0, "b":0})
+
+    st.plotly_chart(fig, use_container_width=True)
