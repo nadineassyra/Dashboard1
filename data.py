@@ -1,10 +1,12 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from pathlib import Path
 
 # Fungsi untuk memuat data
 def load_data():
-    df = pd.read_csv("dataset/covid_19_indonesia_time_series_all.csv")
+    file_path = Path(__file__).parent / "dataset" / "covid_19_indonesia_time_series_all.csv"
+    df = pd.read_csv(file_path)
     df['Date'] = pd.to_datetime(df['Date'])
     return df
 
