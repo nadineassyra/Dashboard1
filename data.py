@@ -4,12 +4,15 @@ import plotly.express as px
 
 # Fungsi untuk memuat data
 def load_data():
-    df = pd.read_csv("dataset\covid_19_indonesia_time_series_all.csv")
+    df = pd.read_csv("dataset/covid_19_indonesia_time_series_all.csv")
+    df['Date'] = pd.to_datetime(df['Date'])
     return df
 
 def filter_data(df, year=None, locations=None):
+    df = df[df['Location Level'] == 'Province']
+
     if year:
-        df = df[df['Date'].astype(str).str.contains(str(year))]
+        df = df[df['Date'].dt.year == year]
 
     if locations:
         df = df[df['Location'].isin(locations)]
@@ -24,9 +27,11 @@ def select_year():
     )
 
 def select_location(df):
+    df_provinsi = df[df['Location Level'] == 'Province']
+
     return st.sidebar.multiselect(
         "Pilih Provinsi 📍",
-        options=sorted(df['Location'].dropna().unique()),
+        options=sorted(df_provinsi['Location'].dropna().unique()),
         default=[]
     )
     
@@ -39,21 +44,16 @@ def show_data(df):
 
 # Total kasus
 def total_case(df):
-    df = load_data()
-    total_kasus = df['New Cases'].sum()
-    return total_kasus
+    df_last = df.sort_values('Date').groupby('Location').tail(1)
+    return df_last['Total Cases'].sum()
 
-# Total Death
 def total_death(df):
-    df = load_data()
-    total_kematian = df['New Deaths'].sum()
-    return total_kematian
-    
-# Total_sembuh
+    df_last = df.sort_values('Date').groupby('Location').tail(1)
+    return df_last['Total Deaths'].sum()
+
 def total_recovery(df):
-    df = load_data()
-    total_sembuh = df['New Recovered'].sum()
-    return total_sembuh
+    df_last = df.sort_values('Date').groupby('Location').tail(1)
+    return df_last['Total Recovered'].sum()
 
 # Kolom 1
 def kolom(df):
